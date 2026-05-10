@@ -532,12 +532,13 @@ const slides = [
     nextCue: "clic slide 16"
   },
   {
-    num: 16, title: "Résultats LOSO", speaker: "Oussama", timing: "~55 sec",
+    num: 16, title: "Résultats LOSO", speaker: "Oussama", timing: "~1:10",
     content: [
       { type: 'p', text: "Le résultat est frappant. Un seul chiffre à retenir : le <strong>Random Forest, qui faisait 100 % de détection sur le paper, en détecte 3 % sur des vrais patients</strong>." },
       { type: 'p', text: "Pour rendre ça concret. Les enregistrements sont découpés en petites <strong>tranches de 2,56 secondes</strong> — c'est la fenêtre d'analyse, ce que le modèle voit pour décider crise ou pas crise. Sur tous nos enregistrements, il y a <strong>893 tranches qui contiennent une vraie crise</strong>. Le RF, sur ces 893 moments de crise réels, en a détecté <strong>29</strong>. Vingt-neuf sur 893." },
-      { type: 'p', text: "Et le piège, c'est que son accuracy globale reste à 97 %. Si on regarde juste ce chiffre, ça ressemble à un succès. Mais 97 %, c'est <strong>exactement le score qu'on aurait en disant « pas de crise » tout le temps</strong>, sans rien apprendre. Le modèle apprend à dire non, parce que les crises sont rares dans les données. C'est ce qu'on appelle <strong>le piège du déséquilibre de classes</strong> : quand les positifs sont rares, l'accuracy ment, il faut regarder la sensibilité." },
-      { type: 'p', text: "L'enseignement de cette diapo : <strong>la méthode du paper ne généralise pas</strong>. Leur 100 % est un artefact de leur protocole de mimes." }
+      { type: 'p', text: "Et le piège, c'est que son accuracy globale reste à 97 %. Si on regarde juste ce chiffre, ça ressemble à un succès. Mais 97 %, c'est <strong>exactement le score qu'on aurait en disant « pas de crise » tout le temps</strong>, sans rien apprendre. Le modèle apprend à dire non, parce que les crises sont rares dans les données — la prévalence est de <strong>2,6 %</strong>. C'est <strong>le piège du déséquilibre de classes</strong> : quand les positifs sont rares, l'accuracy ment." },
+      { type: 'p', text: "Pour neutraliser ce biais, on regarde le <strong>F1</strong> — la moyenne harmonique de precision et recall, c'est la métrique honnête sous déséquilibre. Le F1 reste <strong>sous 10 %</strong> pour les quatre modèles testés ; <strong>6 %</strong> pour le RF. Aucun ne s'approche d'un usage clinique." },
+      { type: 'p', text: "L'enseignement de cette diapo : <strong>la méthode du paper ne généralise pas</strong>. Leur 100 % est un artefact de leur protocole de mimes sur jeu de test artificiellement équilibré." }
     ],
     nextCue: "clic slide 17"
   },
@@ -578,9 +579,11 @@ const slides = [
     nextCue: "retour aux slides, clic slide 20, transition vers Rihab"
   },
   {
-    num: 20, title: "Conclusion — Compromis perf / ressources", speaker: "Rihab", timing: "~30 sec",
+    num: 20, title: "Conclusion + perspectives", speaker: "Rihab", timing: "~35 sec",
     content: [
-      { type: 'p', text: "Pour conclure : le paper Raman propose un proof-of-concept cohérent à l'échelle d'un papier de proceedings, mais quatre contradictions internes et l'absence de patients réels limitent fortement sa portée clinique. Notre travail le montre concrètement : sur des patients réels, <strong>le 100 % de détection du paper tombe à 3 %</strong>. Côté Edge AI, on a une vraie contribution avec le <strong>MLP INT8, 56 fois plus léger que le RF</strong> et viable en mémoire embarquée. Ce qui manque pour aller plus loin : plus de sujets, des mesures hardware réelles, et un protocole éthique formel. <strong>Merci pour votre attention. On est prêts pour les questions.</strong>" }
+      { type: 'p', text: "Pour conclure : le paper Raman est cohérent à l'échelle d'un proceedings, mais <strong>quatre contradictions internes</strong> et l'absence de patients réels limitent sa portée clinique. Notre LOSO le montre concrètement : <strong>le 100 % du paper tombe à 3 % de recall</strong>, et le F1 reste sous 10 % pour les quatre modèles. Côté Edge AI, vraie contribution avec le <strong>MLP INT8, 56× plus léger que le RF</strong>, viable en mémoire embarquée." },
+      { type: 'p', text: "Pour aller plus loin, deux leviers complémentaires : <strong>étendre l'entraînement à 30-50 patients</strong> sur les 125 disponibles dans SeizeIT2 pour augmenter la variabilité physiologique, et appliquer des <strong>techniques sensibles à la classe minoritaire</strong> — class weighting, focal loss, ou approche anomalie — pour pénaliser plus fortement les crises manquées. Et un dernier axe : passer du recall window-level au <strong>recall event-level</strong>, plus pertinent cliniquement." },
+      { type: 'p', text: "<strong>Merci pour votre attention. On est prêts pour les questions.</strong>" }
     ],
     nextCue: "laisse slide 21 affichée — biblio + repo + Q&A"
   },
@@ -588,8 +591,10 @@ const slides = [
     num: 21, title: "Bibliographie + Repo + Q&A", speaker: "QA", timing: "—",
     content: [
       { type: 'p', text: "<strong>Slide affichée pendant les questions. Pas de speech dédié.</strong>" },
-      { type: 'p', text: "Préparez les réponses aux questions probables : pourquoi MLP plutôt que RF compact, pourquoi seulement 6 sujets, domain shift iPhone-LSM9DS1 non-quantifié, autres archis (CNN 1D, LSTM), validation des chiffres ESP32 sans hardware, définition d'une « fenêtre », recall pooled vs par patient." },
-      { type: 'p', text: "Si une question dépasse la préparation : reformuler la question, donner ce qu'on sait, dire honnêtement ce qu'on ne sait pas, proposer une piste." }
+      { type: 'p', text: "<strong>Questions techniques anticipées</strong> : pourquoi MLP plutôt que RF compact ; pourquoi seulement 6 sujets ; domain shift iPhone-LSM9DS1 non-quantifié ; autres archis (CNN 1D, LSTM, transformer) ; validation des chiffres ESP32 sans hardware ; définition d'une « fenêtre » et pourquoi 893 ; recall pooled vs par patient." },
+      { type: 'p', text: "<strong>Questions métriques (anticipées suite échange Mme Manel)</strong> : pourquoi le recall est si bas, c'est un bug ; comment ça se fait que l'accuracy soit si haute ; quelle prévalence ; vous avez calculé le F1 ; et la FAR par heure ; window-level vs event-level recall." },
+      { type: 'p', text: "<strong>Chiffres-clés à avoir en tête</strong> : prévalence 2,63 %, baseline trivial 97,37 %, RF accuracy 97,36 %, RF F1 6,1 %, MLP F1 5,2 %. Détail par sujet : sub-001 0/114, sub-032 0/116, sub-085 23/58, sub-096 5/37, sub-124 1/345, sub-125 0/223 → ΣTP = 29, ΣFN = 864." },
+      { type: 'p', text: "Si une question dépasse la préparation : reformuler, donner ce qu'on sait, dire honnêtement ce qu'on ne sait pas, proposer une piste." }
     ],
     nextCue: ""
   }
