@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Téléprompteur — Groupe 2 SUPCOM — Raman 2025</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --font-scale: 1;
+  }
+
+  html, body {
+    height: 100%;
+    background: #ffffff;
+    color: #000000;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .progress-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 4px;
+    background: #000;
+    transition: width 0.25s ease;
+    z-index: 100;
+  }
+
+  header {
+    flex-shrink: 0;
+    padding: 0.75rem 1.5rem;
+    border-bottom: 2px solid #000;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    font-size: 1rem;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .speaker-badge {
+    display: inline-block;
+    padding: 0.25rem 0.85rem;
+    border-radius: 999px;
+    background: #000;
+    color: #fff;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.85rem;
+  }
+
+  .speaker-badge.rihab    { background: #1a5fbf; }
+  .speaker-badge.khaoula  { background: #128b45; }
+  .speaker-badge.hamdi    { background: #6c2cb0; }
+  .speaker-badge.amine    { background: #c46500; }
+  .speaker-badge.oussama  { background: #b51d4a; }
+  .speaker-badge.qa       { background: #444; }
+
+  .title {
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: #000;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .timing {
+    color: #555;
+    font-weight: 500;
+  }
+
+  .counter {
+    font-weight: 800;
+    color: #000;
+    font-size: 1.05rem;
+  }
+
+  main {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 2.5rem 3.5rem 3rem 3.5rem;
+    scroll-behavior: smooth;
+  }
+
+  .speech-container {
+    max-width: 1500px;
+    margin: 0 auto;
+  }
+
+  .speech p {
+    font-size: calc(clamp(1.5rem, 2.2vw + 0.6rem, 3rem) * var(--font-scale));
+    line-height: 1.45;
+    margin-bottom: 1.4em;
+    font-weight: 500;
+    color: #000;
+  }
+
+  .speech p:last-child {
+    margin-bottom: 0;
+  }
+
+  .speech p strong {
+    font-weight: 800;
+    background: #fff700;
+    padding: 0 0.15em;
+  }
+
+  .speech p code {
+    font-family: 'JetBrains Mono', 'Consolas', monospace;
+    background: #f0f0f0;
+    padding: 0.05em 0.35em;
+    border-radius: 4px;
+    font-size: 0.92em;
+    border: 1px solid #ddd;
+  }
+
+  .cue {
+    font-size: calc(clamp(1rem, 1.4vw + 0.4rem, 1.6rem) * var(--font-scale));
+    color: #555;
+    font-style: italic;
+    margin: 1.4em 0;
+    padding: 0.7em 1.2em;
+    border-left: 4px solid #000;
+    background: #f6f6f6;
+    border-radius: 0 8px 8px 0;
+  }
+
+  .cue::before {
+    content: "▸ ACTION : ";
+    font-weight: 800;
+    font-style: normal;
+    color: #000;
+  }
+
+  footer {
+    flex-shrink: 0;
+    padding: 0.75rem 1.5rem;
+    border-top: 2px solid #000;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    font-size: 0.95rem;
+    background: #fafafa;
+  }
+
+  .next-cue {
+    font-weight: 600;
+    color: #000;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .next-cue .arrow {
+    color: #b51d4a;
+    font-weight: 800;
+    margin-right: 0.4rem;
+  }
+
+  .next-cue .empty {
+    color: #888;
+    font-style: italic;
+  }
+
+  .controls {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .controls button {
+    background: #000;
+    color: #fff;
+    border: none;
+    padding: 0.55rem 1.1rem;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    border-radius: 6px;
+    font-family: inherit;
+    transition: background 0.15s;
+  }
+
+  .controls button:hover:not(:disabled) {
+    background: #333;
+  }
+
+  .controls button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+  }
+
+  .icon-btn {
+    background: transparent !important;
+    color: #000 !important;
+    border: 2px solid #000 !important;
+    width: 2.4rem;
+    height: 2.4rem;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    font-size: 1.05rem !important;
+  }
+
+  .icon-btn:hover:not(:disabled) {
+    background: #000 !important;
+    color: #fff !important;
+  }
+
+  .keymap {
+    position: fixed;
+    bottom: 5.5rem;
+    right: 1.5rem;
+    background: #000;
+    color: #fff;
+    padding: 1.4rem 1.6rem;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    line-height: 1.7;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+    display: none;
+    max-width: 340px;
+    z-index: 50;
+  }
+
+  .keymap.show {
+    display: block;
+  }
+
+  .keymap h3 {
+    font-size: 1rem;
+    margin-bottom: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .keymap kbd {
+    display: inline-block;
+    background: #fff;
+    color: #000;
+    padding: 0.1rem 0.5rem;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 0.85rem;
+    margin: 0 0.15rem;
+    border: 1px solid #555;
+  }
+
+  .keymap p {
+    margin-bottom: 0.3rem;
+  }
+
+  .jump-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+  }
+
+  .jump-modal.show { display: flex; }
+
+  .jump-modal-content {
+    background: #fff;
+    padding: 2rem;
+    border-radius: 12px;
+    text-align: center;
+    min-width: 280px;
+  }
+
+  .jump-modal input {
+    font-size: 2rem;
+    padding: 0.5rem;
+    width: 8rem;
+    text-align: center;
+    border: 2px solid #000;
+    border-radius: 6px;
+    font-weight: 700;
+    font-family: inherit;
+  }
+
+  .jump-modal h3 {
+    margin-bottom: 1rem;
+  }
+
+  .jump-modal p {
+    margin-top: 0.8rem;
+    font-size: 0.9rem;
+    color: #666;
+  }
+
+  @media (max-width: 720px) {
+    header { padding: 0.5rem 0.8rem; gap: 0.5rem; font-size: 0.85rem; }
+    .header-left { gap: 0.5rem; }
+    .header-right { gap: 0.7rem; }
+    .title { font-size: 0.9rem; }
+    main { padding: 1.5rem 1.2rem 2rem 1.2rem; }
+    footer { padding: 0.5rem 0.8rem; font-size: 0.85rem; }
+    .controls button { padding: 0.4rem 0.7rem; font-size: 0.85rem; }
+    .icon-btn { width: 2rem; height: 2rem; }
+    .next-cue { width: 100%; flex: none; white-space: normal; }
+  }
+
+  @media print {
+    header, footer, .keymap, .jump-modal, .progress-bar { display: none; }
+    main { overflow: visible; padding: 1cm; }
+    .speech p { font-size: 14pt; page-break-inside: avoid; }
+    .cue { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="progress-bar" id="progress"></div>
+
+<header>
+  <div class="header-left">
+    <span class="speaker-badge" id="speaker-badge">RIHAB</span>
+    <span class="title" id="title">Slide 1 — Cover</span>
+  </div>
+  <div class="header-right">
+    <span class="timing" id="timing">~25 sec</span>
+    <span class="counter"><span id="current">1</span> / 21</span>
+  </div>
+</header>
+
+<main id="speech-area">
+  <div class="speech-container">
+    <div class="speech" id="speech"></div>
+  </div>
+</main>
+
+<footer>
+  <div class="next-cue" id="next-cue"></div>
+  <div class="controls">
+    <button class="icon-btn" onclick="toggleKeymap()" title="Raccourcis (?)">?</button>
+    <button class="icon-btn" onclick="decreaseFont()" title="Réduire le texte (-)">−</button>
+    <button class="icon-btn" onclick="increaseFont()" title="Agrandir le texte (+)">+</button>
+    <button onclick="prev()" id="btn-prev">◀ Précédent</button>
+    <button onclick="next()" id="btn-next">Suivant ▶</button>
+  </div>
+</footer>
+
+<div class="keymap" id="keymap">
+  <h3>Raccourcis clavier</h3>
+  <p><kbd>→</kbd> <kbd>Espace</kbd> Slide suivante</p>
+  <p><kbd>←</kbd> Slide précédente</p>
+  <p><kbd>↑</kbd> <kbd>↓</kbd> Faire défiler le texte</p>
+  <p><kbd>Home</kbd> Première slide</p>
+  <p><kbd>End</kbd> Dernière slide</p>
+  <p><kbd>+</kbd> <kbd>−</kbd> Taille du texte</p>
+  <p><kbd>F</kbd> Plein écran</p>
+  <p><kbd>G</kbd> Aller à la slide…</p>
+  <p><kbd>?</kbd> Afficher / cacher cette aide</p>
+</div>
+
+<div class="jump-modal" id="jumpModal" onclick="if(event.target===this)closeJump()">
+  <div class="jump-modal-content">
+    <h3>Aller à la slide</h3>
+    <input type="number" id="jumpInput" min="1" max="21" placeholder="1-21">
+    <p>Entrée pour valider · Échap pour annuler</p>
+  </div>
+</div>
+
+<script>
+const slides = [
+  {
+    num: 1, title: "Cover", speaker: "Rihab", timing: "~25 sec",
+    content: [
+      { type: 'p', text: "Bonjour Madame, bonjour à tous. On vous présente notre travail sur le paper de Raman et Velmurugan, paru en 2025 dans Engineering Proceedings. Le sujet : un dispositif IoMT portable pour la détection des crises d'épilepsie, basé sur un accéléromètre et un microcontrôleur ESP32. On est cinq dans le groupe : Rihab, Khaoula, Hamdi, Amine et Oussama." }
+    ],
+    nextCue: "clic slide 2"
+  },
+  {
+    num: 2, title: "Sommaire", speaker: "Rihab", timing: "~15 sec",
+    content: [
+      { type: 'p', text: "On va dérouler en six temps : le contexte médical, l'état de l'art, la méthodologie du paper, ses résultats avec une analyse critique, puis le travail de réplication qu'Oussama a fait sur des données patient réelles. Je commence par le contexte." }
+    ],
+    nextCue: "clic slide 3"
+  },
+  {
+    num: 3, title: "Contexte médical", speaker: "Rihab", timing: "~50 sec",
+    content: [
+      { type: 'p', text: "L'épilepsie touche environ <strong>60 millions de personnes</strong> dans le monde — près d'un pour cent de la population mondiale. C'est une des pathologies neurologiques chroniques les plus fréquentes. Les crises sont soudaines, imprévisibles, et exposent les patients à des risques immédiats : chutes, traumatismes, et dans les cas les plus graves la mort subite inattendue, le SUDEP." },
+      { type: 'p', text: "Le gold standard diagnostique, c'est l'EEG. Mais en faire à domicile, en continu, sur 24 heures, c'est impraticable : électrodes collées sur le crâne, gel conducteur, expert qui doit interpréter le tracé. Et près de <strong>la moitié des crises arrivent pendant le sommeil</strong>, sans témoin." },
+      { type: 'p', text: "Le verrou est donc clair : trouver une alternative légère, portable, sans contact cutané, qui tourne en autonomie chez le patient. C'est ce que le paper Raman cherche à proposer." }
+    ],
+    nextCue: "clic slide 4"
+  },
+  {
+    num: 4, title: "Enjeux Edge AI + KPI", speaker: "Rihab", timing: "~50 sec",
+    content: [
+      { type: 'p', text: "La solution proposée, c'est le couple <strong>wearable + Edge AI</strong> : un capteur sur le patient, un microcontrôleur qui fait l'inférence localement, et une alerte envoyée aux soignants en cas de crise. Pas de cloud, pas de latence réseau, et les données ne sortent pas du device." },
+      { type: 'p', text: "Pour qu'un tel système soit utilisable cliniquement, on a quatre KPI à tenir, et chacun a une raison médicale. <strong>Sensibilité au-delà de 95 %</strong>, parce qu'une crise non-détectée, c'est un patient à risque. <strong>Moins d'une fausse alarme par heure la nuit</strong>, sinon les soignants se désensibilisent et finissent par ignorer le système. <strong>Latence sub-seconde</strong>, pour pouvoir intervenir avant la chute. Et un <strong>modèle sous 100 KB de RAM</strong>, parce qu'un ESP32 n'a que 520 KB à partager entre le modèle, les capteurs, la com et l'OS." },
+      { type: 'p', text: "C'est sur ces quatre cibles qu'on va juger Raman. Khaoula prend la suite." }
+    ],
+    nextCue: "transition vers Khaoula, clic slide 5"
+  },
+  {
+    num: 5, title: "Taxonomie 4 familles", speaker: "Khaoula", timing: "~50 sec",
+    content: [
+      { type: 'p', text: "Merci Rihab. Pour situer le paper Raman, il faut d'abord cartographier le paysage. On a identifié quatre grandes familles d'approches pour détecter une crise." },
+      { type: 'p', text: "<strong>Première famille</strong>, les méthodes cliniques — EEG, MEG, IRM. Très précises mais hospitalières, jamais à domicile. <strong>Deuxième famille</strong>, les capteurs de mouvement avec un classifieur classique — peu coûteux, déjà compatibles Edge AI : c'est exactement là que se positionne Raman. <strong>Troisième famille</strong>, le ML classique sur signaux EEG — performant mais nécessite l'EEG, donc pas portable. <strong>Quatrième famille</strong>, le deep learning et le TinyML — prometteur mais coûteux en données et en mémoire." },
+      { type: 'p', text: "L'enjeu de l'état de l'art, c'est de comprendre pourquoi seule la deuxième famille est viable pour un déploiement à domicile, et ce qui a déjà été fait dans cette direction." }
+    ],
+    nextCue: "clic slide 6"
+  },
+  {
+    num: 6, title: "Méthodes cliniques", speaker: "Khaoula", timing: "~45 sec",
+    content: [
+      { type: 'p', text: "Sur les méthodes cliniques, l'EEG est présenté dans le paper Raman comme la méthode de référence pour observer les patterns cérébraux anormaux. Le MEG offre une résolution temporelle de l'ordre de la milliseconde mais reste un équipement hospitalier. Les références 5 et 6 du paper documentent ce socle clinique. Pour notre cas, on retient une chose : <strong>aucune de ces méthodes n'est portable au quotidien</strong>." }
+    ],
+    nextCue: "clic slide 7"
+  },
+  {
+    num: 7, title: "ML classique + DL", speaker: "Khaoula", timing: "~50 sec",
+    content: [
+      { type: 'p', text: "Dans la famille capteur de mouvement plus ML classique, le travail de référence c'est <strong>Kusmakar 2018</strong>. Il a montré qu'un seul accéléromètre, avec un classifieur SVDD, suffit à détecter les crises tonico-cloniques — celles qui produisent les secousses caractéristiques. C'est exactement la voie qu'a prise Raman." },
+      { type: 'p', text: "Sur les autres familles, Davidson 2022 et Roy 2020 font du ML supervisé sur features EEG : performances élevées, mais l'EEG reste hospitalier. Yu Liu 2020 a essayé du deep learning multi-biosignal, mais avec un besoin de gros datasets qui n'existent pas en clinique. En marge, Zabler 2024 propose une application mobile d'auto-déclaration et Komal 2024 fait une revue systématique des dispositifs." },
+      { type: 'p', text: "Bilan pour notre lecture : la voie choisie par Raman est crédible, mais <strong>Kusmakar est un benchmark direct qui aurait dû figurer dans leur comparaison, et qui n'y est pas</strong>." }
+    ],
+    nextCue: "clic slide 8"
+  },
+  {
+    num: 8, title: "Tableau comparatif + verrous", speaker: "Khaoula", timing: "~50 sec",
+    content: [
+      { type: 'p', text: "Le tableau résume tout. Sur un microcontrôleur de la classe ESP32, seules les approches inertielles avec ML classique tiennent vraiment. Le deep learning est possible en TinyML mais reste contraint en mémoire et en données." },
+      { type: 'p', text: "Et la communauté en 2024-2025 a quatre verrous ouverts qu'il faut garder en tête. <strong>Pas de gold standard wearable validé</strong>. <strong>Variabilité énorme d'un patient à l'autre</strong>. Beaucoup de papiers entraînent sur <strong>des datasets simulés au lieu de patients réels</strong>. Et le <strong>déploiement TFLite Micro reste peu répandu</strong>. C'est exactement dans ce paysage que se positionne Raman, et c'est ce qui rend notre lecture critique pertinente : on va voir s'ils tombent dans les mêmes pièges que la communauté." },
+      { type: 'p', text: "Hamdi enchaîne sur la méthodologie." }
+    ],
+    nextCue: "transition vers Hamdi, clic slide 9"
+  },
+  {
+    num: 9, title: "Architecture hardware", speaker: "Hamdi", timing: "~40 sec",
+    content: [
+      { type: 'p', text: "Côté hardware, <strong>trois choix à expliquer</strong>." },
+      { type: 'p', text: "Le capteur, c'est un <strong>LSM9DS1</strong> — un IMU 9 axes de ST. Le placement sur le tibia s'explique par la physiologie : les crises tonico-cloniques produisent des secousses des jambes très caractéristiques, et un accéléromètre triaxial sur le tibia capture ce signal avec un seul point de mesure." },
+      { type: 'p', text: "Le microcontrôleur, c'est un <strong>ESP32 Cam</strong> — 520 KB de SRAM, WiFi et Bluetooth intégrés sur la même puce. Choix typique de prototype Edge AI : peu cher, sans-fil sans circuit additionnel, programmable en MicroPython." },
+      { type: 'p', text: "Et une batterie 3,7 volts 1500 mAh avec module de recharge TP4056, pour viser une autonomie 24 heures." }
+    ],
+    nextCue: "clic slide 10"
+  },
+  {
+    num: 10, title: "Pipeline data", speaker: "Hamdi", timing: "~40 sec",
+    content: [
+      { type: 'p', text: "Le pipeline a une logique simple. <strong>Acquisition à 50 Hz</strong> : la marche humaine est à 1 à 3 Hz, les secousses de crise montent à une dizaine de Hz, donc 50 Hz suffit largement à les capter. Filtre passe-bas Butterworth pour enlever le bruit haute fréquence." },
+      { type: 'p', text: "<strong>Découpage en fenêtres de 2,56 secondes</strong> avec 50 % d'overlap. La durée de 2,56 s correspond à un épisode tonique court ; l'overlap garantit qu'on ne rate pas une crise qui se déclenche à cheval entre deux fenêtres." },
+      { type: 'p', text: "<strong>Six features extraites</strong> par fenêtre — statistiques temporelles et fréquentielles. Compromis classique : assez riche pour discriminer crise et non-crise, assez léger pour un microcontrôleur." },
+      { type: 'p', text: "Trois modèles testés : Decision Tree, SVM, Random Forest. Code en MicroPython." }
+    ],
+    nextCue: "clic slide 11"
+  },
+  {
+    num: 11, title: "Encadré domain shift", speaker: "Hamdi", timing: "~40 sec",
+    content: [
+      { type: 'p', text: "Et là, <strong>point important pour la suite</strong>. La méthodologie décrit un prototype ESP32 plus LSM9DS1 sur le tibia. Mais en lisant la section 4 du paper, on découvre que <strong>toutes les données ont été acquises sur un iPhone 11</strong>. Pas sur le prototype." },
+      { type: 'p', text: "C'est un <strong>domain shift</strong> entre le capteur d'entraînement et le capteur de déploiement, et le paper ne le quantifie pas. Amine va revenir là-dessus en détail." }
+    ],
+    nextCue: "transition vers Amine, clic slide 12"
+  },
+  {
+    num: 12, title: "Table 1 reproduite", speaker: "Amine", timing: "~55 sec",
+    content: [
+      { type: 'p', text: "Merci Hamdi. Les résultats du paper, Table 1 — je vais vous donner les chiffres, mais surtout ce qu'ils veulent dire." },
+      { type: 'p', text: "Sur 60 signaux en test, dont 30 contenant des crises mimées, les trois modèles tournent dans la même zone : 85 à 95 % d'accuracy globale. Le <strong>Random Forest</strong> est le meilleur sur le recall — c'est-à-dire la fraction de crises effectivement détectées : <strong>100 %, donc 30 sur 30</strong>. Mais en contrepartie, c'est lui qui a le <strong>FPR le plus élevé, 15 % de fausses alarmes</strong> : sur les fenêtres sans crise, il en signale quand même 15 % à tort." },
+      { type: 'p', text: "Le SVM est le miroir inverse : moins de fausses alarmes, mais il rate plus de crises. Le Decision Tree est entre les deux, derrière les deux autres." },
+      { type: 'p', text: "Les auteurs choisissent quand même le RF pour le déploiement, en privilégiant le recall sur le FPR. Ce sont les chiffres officiels du paper. Maintenant, place à <strong>la lecture critique</strong>." }
+    ],
+    nextCue: "clic slide 13"
+  },
+  {
+    num: 13, title: "Les 4 contradictions internes", speaker: "Amine", timing: "~1:25",
+    content: [
+      { type: 'p', text: "En relisant le paper attentivement, on a identifié <strong>quatre contradictions internes</strong>." },
+      { type: 'p', text: "<strong>Une, le capteur.</strong> L'abstract parle d'un MPU6500. La section 3.1 parle d'un LSM9DS1, qui n'est pas le même composant. Et la section 4 nous dit que les données viennent d'un iPhone 11. <strong>Trois capteurs différents pour un même dispositif</strong>, sans aucune explication." },
+      { type: 'p', text: "<strong>Deux, le FPR.</strong> L'abstract annonce un FPR inférieur à 4 %. Mais la Table 1 donne au minimum 11 % pour le SVM. Aucun des trois modèles n'atteint le 4 % annoncé. Le RF, qui est le modèle déployé, est même à <strong>15 %, soit presque quatre fois plus</strong>." },
+      { type: 'p', text: "<strong>Trois, le domain shift.</strong> Les modèles sont entraînés sur un iPhone et déployés sur un LSM9DS1 tibial. <strong>Aucune validation de transfert n'est rapportée</strong>." },
+      { type: 'p', text: "<strong>Quatre</strong>, dans la discussion, le paper affirme que le RF détecte les crises sans aucun FPR, alors que la Table 1 lui attribue le FPR le plus élevé des trois modèles. <strong>C'est juste contradictoire avec leurs propres chiffres</strong>." }
+    ],
+    nextCue: "clic slide 14"
+  },
+  {
+    num: 14, title: "Limites méthodologiques", speaker: "Amine", timing: "~1:25",
+    content: [
+      { type: 'p', text: "Au-delà des contradictions, on a aussi des <strong>limites méthodologiques</strong>." },
+      { type: 'p', text: "<strong>La taille du jeu de données</strong> : 60 signaux en test, dont seulement 30 positifs. Le recall de 100 % du RF, c'est 30 sur 30. Aucun intervalle de confiance n'est rapporté." },
+      { type: 'p', text: "<strong>La population</strong> : ce sont des volontaires sains qui miment des crises. Pas de patients épileptiques réels. Le paper le reconnaît mais ne quantifie pas l'écart." },
+      { type: 'p', text: "<strong>Pas de mesure</strong> de latence d'inférence en millisecondes. Pas de consommation énergétique. Pas de taille du modèle RF. Pas de RAM consommée. Pour un système Edge AI, ce sont des absences importantes." },
+      { type: 'p', text: "Et la <strong>déclaration IRB</strong> est marquée « Not applicable » alors que l'étude implique des humains qui simulent des crises sous supervision médicale. C'est discutable." },
+      { type: 'p', text: "Voilà pour les limites du paper. Oussama enchaîne avec le travail de réplication." }
+    ],
+    nextCue: "transition vers Oussama, clic slide 15"
+  },
+  {
+    num: 15, title: "SeizeIT2 + LOSO", speaker: "Oussama", timing: "~50 sec",
+    content: [
+      { type: 'p', text: "Merci Amine. Donc Amine vient de montrer les limites du paper. La question qu'on s'est posée est directe : <strong>si on prend leur chaîne de traitement telle quelle et qu'on la teste sur des vrais patients épileptiques, est-ce qu'elle marche encore ?</strong>" },
+      { type: 'p', text: "C'est notre objectif académique : <strong>quantifier l'écart entre la simulation faite par les auteurs et la réalité clinique</strong>." },
+      { type: 'p', text: "Pour ça, on a pris <strong>SeizeIT2</strong>, un dataset hospitalier publié sur OpenNeuro. Le chiffre qui compte ici, et c'est le seul que je vous demande de retenir : <strong>six patients épileptiques réels</strong>, monitorés en milieu hospitalier, avec EEG et capteurs de mouvement. Pas des volontaires sains qui miment." },
+      { type: 'p', text: "Et on valide avec une méthode qu'on appelle <strong>LOSO, Leave-One-Subject-Out</strong>. Le principe est simple : on entraîne le modèle sur cinq patients, on le teste sur le sixième que le modèle n'a jamais vu, et on répète six fois en changeant de patient. Ça simule exactement le déploiement réel : un nouveau patient arrive, le modèle doit décider sans l'avoir jamais rencontré." }
+    ],
+    nextCue: "clic slide 16"
+  },
+  {
+    num: 16, title: "Résultats LOSO", speaker: "Oussama", timing: "~55 sec",
+    content: [
+      { type: 'p', text: "Le résultat est frappant. Un seul chiffre à retenir : le <strong>Random Forest, qui faisait 100 % de détection sur le paper, en détecte 3 % sur des vrais patients</strong>." },
+      { type: 'p', text: "Pour rendre ça concret. Les enregistrements sont découpés en petites <strong>tranches de 2,56 secondes</strong> — c'est la fenêtre d'analyse, ce que le modèle voit pour décider crise ou pas crise. Sur tous nos enregistrements, il y a <strong>893 tranches qui contiennent une vraie crise</strong>. Le RF, sur ces 893 moments de crise réels, en a détecté <strong>29</strong>. Vingt-neuf sur 893." },
+      { type: 'p', text: "Et le piège, c'est que son accuracy globale reste à 97 %. Si on regarde juste ce chiffre, ça ressemble à un succès. Mais 97 %, c'est <strong>exactement le score qu'on aurait en disant « pas de crise » tout le temps</strong>, sans rien apprendre. Le modèle apprend à dire non, parce que les crises sont rares dans les données. C'est ce qu'on appelle <strong>le piège du déséquilibre de classes</strong> : quand les positifs sont rares, l'accuracy ment, il faut regarder la sensibilité." },
+      { type: 'p', text: "L'enseignement de cette diapo : <strong>la méthode du paper ne généralise pas</strong>. Leur 100 % est un artefact de leur protocole de mimes." }
+    ],
+    nextCue: "clic slide 17"
+  },
+  {
+    num: 17, title: "Estimation ESP32", speaker: "Oussama", timing: "~40 sec",
+    content: [
+      { type: 'p', text: "Maintenant, sur le côté Edge AI pur. La question : <strong>est-ce que le RF du paper tient vraiment dans un ESP32 ?</strong>" },
+      { type: 'p', text: "Réponse : <strong>non, pas tel quel</strong>. En pleine précision, ce RF pèse <strong>1400 KB</strong> de mémoire. L'ESP32 a 520 KB. Il ne rentre pas, ça dépasse de presque trois fois la mémoire dispo." },
+      { type: 'p', text: "On peut le compresser avec une technique qu'on appelle <strong>quantification INT8</strong> : on passe les poids du modèle de 32 bits à 8 bits, on divise la taille par quatre. Là, on tombe à 357 KB. Ça rentre, mais ça occupe quasi 70 % de la mémoire — il ne reste presque rien pour les capteurs et la communication." },
+      { type: 'p', text: "Notre alternative, un petit <strong>MLP quantifié, c'est 6 KB. Cinquante-six fois plus léger que le RF</strong>. Et il libère la mémoire pour le reste du système." },
+      { type: 'p', text: "Important — ce sont des <strong>estimations analytiques</strong> basées sur le nombre d'opérations et les specs constructeur de l'ESP32. Pas une mesure hardware. On l'assume comme limite." }
+    ],
+    nextCue: "clic slide 18"
+  },
+  {
+    num: 18, title: "Le résultat qui change la discussion", speaker: "Oussama", timing: "~35 sec",
+    content: [
+      { type: 'p', text: "Donc au final, on a <strong>deux résultats à séparer</strong>." },
+      { type: 'p', text: "Sur la <strong>mémoire</strong>, on a une vraie contribution Edge AI : le MLP quantifié fait tenir un détecteur de crise dans un microcontrôleur low-cost, là où le RF du paper était trop gros." },
+      { type: 'p', text: "Sur la <strong>performance clinique</strong>, par contre, ni le MLP, ni le RF ne sont utilisables sur des patients réels. La sensibilité reste trop basse pour un usage médical." },
+      { type: 'p', text: "Le message qu'on assume, et qui est notre vraie conclusion scientifique : <strong>optimiser le matériel ne résout pas le verrou clinique</strong>. Pour franchir ce verrou-là, il faut plus de patients, plus de variabilité dans les données, et probablement revoir la chaîne de features. Le hardware low-cost devient possible, mais le problème médical reste ouvert." },
+      { type: 'p', text: "On va maintenant voir tout ça <strong>en mouvement</strong>." }
+    ],
+    nextCue: "clic slide 19"
+  },
+  {
+    num: 19, title: "DÉMO LIVE SeizureGuard", speaker: "Oussama", timing: "~1:00",
+    content: [
+      { type: 'p', text: "Tout ce que les slides précédentes ont raconté en chiffres, on peut le voir bouger. L'application est déployée à <code>iot-groupe2-supcom.streamlit.app</code> — c'est public, le lien est dans le repo et sur le slide." },
+      { type: 'cue', text: "bascule en plein écran navigateur, app Streamlit déjà ouverte sur l'onglet 2" },
+      { type: 'p', text: "Onglet <strong>Model arena</strong>. Patient <code>sub-032</code> — un patient que les modèles n'ont jamais vu pendant l'entraînement. Vitesse Rapide. Lecture." },
+      { type: 'cue', text: "clic « Lancer la lecture »" },
+      { type: 'p', text: "Pendant que ça tourne, le contexte : 116 fenêtres de crise réelles sur ce patient. Les quatre modèles classent en parallèle, fenêtre par fenêtre. Le Random Forest reste plat — il ne détecte rien. Le MLP, lui, s'allume par instants. Verdict final : <strong>dix-sept contre zéro</strong>." },
+      { type: 'cue', text: "à la fin de l'animation, switch onglet 3 « ESP32 cost dashboard »" },
+      { type: 'p', text: "Onglet <strong>Coût ESP32</strong>. La barre RF en pleine précision déborde — 274 % de la SRAM, ça ne tient pas physiquement. Quantifié INT8, le RF tombe à 357 KB, 69 % de la mémoire. Le MLP INT8 reste à 6,4 KB, 1,2 %. La même histoire que la slide précédente, mais visible sur la barre de remplissage." },
+      { type: 'p', text: "Voilà la version animée du résultat. Rihab conclut." }
+    ],
+    nextCue: "retour aux slides, clic slide 20, transition vers Rihab"
+  },
+  {
+    num: 20, title: "Conclusion — Compromis perf / ressources", speaker: "Rihab", timing: "~30 sec",
+    content: [
+      { type: 'p', text: "Pour conclure : le paper Raman propose un proof-of-concept cohérent à l'échelle d'un papier de proceedings, mais quatre contradictions internes et l'absence de patients réels limitent fortement sa portée clinique. Notre travail le montre concrètement : sur des patients réels, <strong>le 100 % de détection du paper tombe à 3 %</strong>. Côté Edge AI, on a une vraie contribution avec le <strong>MLP INT8, 56 fois plus léger que le RF</strong> et viable en mémoire embarquée. Ce qui manque pour aller plus loin : plus de sujets, des mesures hardware réelles, et un protocole éthique formel. <strong>Merci pour votre attention. On est prêts pour les questions.</strong>" }
+    ],
+    nextCue: "laisse slide 21 affichée — biblio + repo + Q&A"
+  },
+  {
+    num: 21, title: "Bibliographie + Repo + Q&A", speaker: "QA", timing: "—",
+    content: [
+      { type: 'p', text: "<strong>Slide affichée pendant les questions. Pas de speech dédié.</strong>" },
+      { type: 'p', text: "Préparez les réponses aux questions probables : pourquoi MLP plutôt que RF compact, pourquoi seulement 6 sujets, domain shift iPhone-LSM9DS1 non-quantifié, autres archis (CNN 1D, LSTM), validation des chiffres ESP32 sans hardware, définition d'une « fenêtre », recall pooled vs par patient." },
+      { type: 'p', text: "Si une question dépasse la préparation : reformuler la question, donner ce qu'on sait, dire honnêtement ce qu'on ne sait pas, proposer une piste." }
+    ],
+    nextCue: ""
+  }
+];
+
+let idx = 0;
+let fontScale = 1;
+
+// Safe DOM builder : parses a constrained subset of inline tags (<strong>, <code>)
+// from the trusted, hardcoded speech data and produces real DOM nodes via
+// document.createElement + textContent. No HTML strings are ever assigned to
+// any element. Uses String.matchAll to avoid the regex .exec() helper.
+function appendFormatted(parent, source) {
+  const pattern = /<(strong|code)>([\s\S]*?)<\/\1>/g;
+  let cursor = 0;
+  for (const m of source.matchAll(pattern)) {
+    if (m.index > cursor) {
+      parent.appendChild(document.createTextNode(source.slice(cursor, m.index)));
+    }
+    const el = document.createElement(m[1]);
+    el.textContent = m[2];
+    parent.appendChild(el);
+    cursor = m.index + m[0].length;
+  }
+  if (cursor < source.length) {
+    parent.appendChild(document.createTextNode(source.slice(cursor)));
+  }
+}
+
+function clearChildren(node) {
+  while (node.firstChild) node.removeChild(node.firstChild);
+}
+
+function render() {
+  const s = slides[idx];
+  document.getElementById('current').textContent = String(s.num);
+  document.getElementById('title').textContent = `Slide ${s.num} — ${s.title}`;
+
+  const badge = document.getElementById('speaker-badge');
+  badge.textContent = s.speaker.toUpperCase();
+  const speakerKey = s.speaker.toLowerCase().replace(/[^a-z]/g, '');
+  badge.className = 'speaker-badge ' + speakerKey;
+
+  document.getElementById('timing').textContent = s.timing;
+
+  const speech = document.getElementById('speech');
+  clearChildren(speech);
+  s.content.forEach(item => {
+    if (item.type === 'p') {
+      const el = document.createElement('p');
+      appendFormatted(el, item.text);
+      speech.appendChild(el);
+    } else if (item.type === 'cue') {
+      const el = document.createElement('div');
+      el.className = 'cue';
+      el.textContent = item.text;
+      speech.appendChild(el);
+    }
+  });
+
+  const nextCue = document.getElementById('next-cue');
+  clearChildren(nextCue);
+  if (s.nextCue) {
+    const arrow = document.createElement('span');
+    arrow.className = 'arrow';
+    arrow.textContent = '▶';
+    nextCue.appendChild(arrow);
+    nextCue.appendChild(document.createTextNode(' ' + s.nextCue));
+  } else {
+    const span = document.createElement('span');
+    span.className = 'empty';
+    span.textContent = '— fin de présentation —';
+    nextCue.appendChild(span);
+  }
+
+  document.getElementById('btn-prev').disabled = idx === 0;
+  document.getElementById('btn-next').disabled = idx === slides.length - 1;
+
+  document.getElementById('progress').style.width = ((idx + 1) / slides.length * 100) + '%';
+
+  document.getElementById('speech-area').scrollTop = 0;
+}
+
+function next() {
+  if (idx < slides.length - 1) { idx++; render(); }
+}
+
+function prev() {
+  if (idx > 0) { idx--; render(); }
+}
+
+function jumpTo(n) {
+  idx = Math.max(0, Math.min(slides.length - 1, n));
+  render();
+}
+
+function toggleKeymap() {
+  document.getElementById('keymap').classList.toggle('show');
+}
+
+function increaseFont() {
+  fontScale = Math.min(2, fontScale + 0.1);
+  document.documentElement.style.setProperty('--font-scale', String(fontScale));
+}
+
+function decreaseFont() {
+  fontScale = Math.max(0.5, fontScale - 0.1);
+  document.documentElement.style.setProperty('--font-scale', String(fontScale));
+}
+
+function openJump() {
+  const m = document.getElementById('jumpModal');
+  m.classList.add('show');
+  const input = document.getElementById('jumpInput');
+  input.value = '';
+  setTimeout(() => input.focus(), 50);
+}
+
+function closeJump() {
+  document.getElementById('jumpModal').classList.remove('show');
+}
+
+document.getElementById('jumpInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const n = parseInt(e.target.value, 10);
+    if (n >= 1 && n <= slides.length) jumpTo(n - 1);
+    closeJump();
+    e.preventDefault();
+  } else if (e.key === 'Escape') {
+    closeJump();
+    e.preventDefault();
+  }
+  e.stopPropagation();
+});
+
+document.addEventListener('keydown', e => {
+  if (document.getElementById('jumpModal').classList.contains('show')) return;
+
+  const main = document.getElementById('speech-area');
+  switch (e.key) {
+    case 'ArrowRight':
+    case ' ':
+    case 'PageDown':
+      next();
+      e.preventDefault();
+      break;
+    case 'ArrowLeft':
+    case 'PageUp':
+      prev();
+      e.preventDefault();
+      break;
+    case 'ArrowDown':
+      main.scrollBy({ top: 80, behavior: 'smooth' });
+      e.preventDefault();
+      break;
+    case 'ArrowUp':
+      main.scrollBy({ top: -80, behavior: 'smooth' });
+      e.preventDefault();
+      break;
+    case 'Home':
+      jumpTo(0);
+      e.preventDefault();
+      break;
+    case 'End':
+      jumpTo(slides.length - 1);
+      e.preventDefault();
+      break;
+    case '+':
+    case '=':
+      increaseFont();
+      e.preventDefault();
+      break;
+    case '-':
+    case '_':
+      decreaseFont();
+      e.preventDefault();
+      break;
+    case 'f':
+    case 'F':
+      if (document.fullscreenElement) document.exitFullscreen();
+      else document.documentElement.requestFullscreen();
+      e.preventDefault();
+      break;
+    case 'g':
+    case 'G':
+      openJump();
+      e.preventDefault();
+      break;
+    case '?':
+      toggleKeymap();
+      e.preventDefault();
+      break;
+    case 'Escape':
+      document.getElementById('keymap').classList.remove('show');
+      closeJump();
+      break;
+  }
+});
+
+let touchStartX = null;
+document.addEventListener('touchstart', e => {
+  touchStartX = e.touches[0].clientX;
+}, { passive: true });
+
+document.addEventListener('touchend', e => {
+  if (touchStartX === null) return;
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  if (Math.abs(dx) > 80) {
+    if (dx < 0) next(); else prev();
+  }
+  touchStartX = null;
+}, { passive: true });
+
+render();
+</script>
+
+</body>
+</html>
